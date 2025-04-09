@@ -1,2 +1,7 @@
 # Dependency directory
 node_modules
+
+# Environment variables
+# This variables are embedded into the Vue build, so we're not really doing anything
+# But this is just an example project, so we don't need to worry about it. ~GD :D
+.env
