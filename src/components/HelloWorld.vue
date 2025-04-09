@@ -2,32 +2,52 @@
   <v-app>
     <v-container>
       <!-- Sección superior -->
-      <v-text-field v-model="book.name" label="Nombre"></v-text-field>
-      <v-text-field v-model="book.author" label="Autor"></v-text-field>
-      <v-text-field v-model="book.year" label="Año"></v-text-field>
-      <v-select v-model="book.genres" :items="genres" label="Géneros" multiple></v-select>
+      <v-text-field v-model="bookToAdd.name" label="Nombre"></v-text-field>
+      <v-text-field v-model="bookToAdd.author" label="Autor"></v-text-field>
+      <v-text-field v-model="bookToAdd.year" label="Año"></v-text-field>
+      <v-select v-model="bookToAdd.genres" :items="genres" label="Géneros" multiple></v-select>
       <v-btn @click="addBook">Agregar</v-btn>
 
       <!-- Sección inferior -->
       <v-data-table :headers="headers" :items="books" class="elevation-1">
         <template v-slot:item.name="{ item }">
-          {{ item.data.name }}
+          {{ item.name }}
         </template>
         <template v-slot:item.author="{ item }">
-          {{ item.data.author }}
+          {{ item.author }}
         </template>
         <template v-slot:item.year="{ item }">
-          {{ item.data.year }}
+          {{ item.year }}
         </template>
         <template v-slot:item.genres="{ item }">
-          {{ item.data.genres.join(', ') }}
+          {{ item.genres.join(', ') }}
         </template>
         <template v-slot:item.actions="{ item }">
-          <v-icon size="small" @click="deleteBook(item)">
+          <v-icon class="mr-2" @click="openEditDialog(item)">
+            mdi-pencil
+          </v-icon>
+          <v-icon @click="deleteBook(item)">
             mdi-delete
           </v-icon>
         </template>
       </v-data-table>
+
+      <!-- Dialogo para editar el libro seleccionado -->
+      <v-dialog v-model="isEditDialogOpen" max-width="500px">
+        <v-card>
+          <v-card-title>Edit Book</v-card-title>
+          <v-card-text>
+            <v-text-field v-model="bookToEdit.name" label="Nombre"></v-text-field>
+            <v-text-field v-model="bookToEdit.author" label="Autor"></v-text-field>
+            <v-text-field v-model="bookToEdit.year" label="Año"></v-text-field>
+            <v-select v-model="bookToEdit.genres" :items="genres" label="Géneros" multiple></v-select>
+          </v-card-text>
+          <v-card-actions>
+            <v-btn color="primary" text @click="saveEdit">Save</v-btn>
+            <v-btn color="secondary" text @click="closeEditDialog">Cancel</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-container>
   </v-app>
 </template>
@@ -38,7 +58,7 @@ import 'firebase/firestore'
 
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc  } from 'firebase/firestore/lite';
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore/lite';
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -59,7 +79,7 @@ const db = getFirestore(app);
 
 export default {
   setup() {
-    const book = ref({ name: '', author: '', year: '', genres: [] })
+    const bookToAdd = ref({ name: '', author: '', year: '', genres: [] })
     const genres = ref(['Ficción', 'No ficción', 'Ciencia ficción', 'Fantasía', 'Misterio', 'Biografía', 'Terror', 'Romance'])
     const books = ref([])
     const headers = ref([
@@ -70,15 +90,18 @@ export default {
       { title: 'Acciones', key: 'actions' }
     ])
 
+    const isEditDialogOpen = ref(false)
+    const bookToEdit = ref({ name: '', author: '', year: '', genres: [] })
+
     const addBook = async () => {
       try {
-        const docRef = await addDoc(collection(db, "books"), book.value);
+        const docRef = await addDoc(collection(db, "books"), bookToAdd.value);
         const newBook = {
           'id': docRef.id,
-          'data': book.value
+          ...bookToAdd.value
         }
         books.value.push(newBook);
-        book.value = { name: '', author: '', year: '', genres: [] };
+        bookToAdd.value = { name: '', author: '', year: '', genres: [] };
       } catch (e) {
         console.error("Error adding document: ", e);
       }
@@ -89,12 +112,43 @@ export default {
       books.value  = books.value.filter(b => b.id != item.id);
     }
 
+    // Open edit dialog with the selected book to edit
+    const openEditDialog = (item) => {
+      bookToEdit.value = item;
+      isEditDialogOpen.value = true;
+    }
+
+    // Close edit dialog and reset bookToEdit
+    const closeEditDialog = () => {
+      bookToEdit.value = { name: '', author: '', year: '', genres: [] };
+      isEditDialogOpen.value = false;
+    }
+
+    const saveEdit = async () => {
+      try {
+        // Get a reference to the book document
+        const bookRef = doc(db, "books", bookToEdit.value.id);
+
+        // Update the book in Firestore
+        await updateDoc(bookRef, bookToEdit.value);
+
+        // Update local books
+        const bookIndex = books.value.findIndex(book => book.id === bookToEdit.value.id);
+        books.value[bookIndex] = { ...bookToEdit.value };
+
+        // Close dialog
+        closeEditDialog();
+      } catch (e) {
+        console.error("Error updating document: ", e);
+      }
+    }
+
     onMounted(async () => {
       const booksCol = collection(db, 'books');
       const booksSnapshot = await getDocs(booksCol);
       const booksList = booksSnapshot.docs.map(doc => ({
         'id': doc.id, 
-        'data': doc.data()
+        ...doc.data()
       }));
 
       console.log(booksList);
@@ -104,7 +158,7 @@ export default {
       })
     })
 
-    return { book, genres, books, headers, addBook, deleteBook }
+    return { bookToAdd, genres, books, headers, addBook, deleteBook, isEditDialogOpen, bookToEdit, openEditDialog, closeEditDialog, saveEdit }
   }
 }
 </script>
