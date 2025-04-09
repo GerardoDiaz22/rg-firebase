@@ -45,6 +45,14 @@
         </v-card>
       </v-dialog>
     </v-container>
+
+    <!--
+      Fuentes:
+      https://vuetifyjs.com/en/components/dialogs/#usage
+      https://vuetifyjs.com/en/styles/spacing/#usage
+      https://vuetifyjs.com/en/components/icons/#material-design
+      Copilot GPT-4o
+    -->
   </v-app>
 </template>
 
@@ -178,4 +186,10 @@ export default {
     };
   },
 };
+
+/**
+ * Sources:
+ * https://firebase.google.com/docs/firestore/manage-data/add-data
+ * Copilot GPT-4o
+ */
 </script>
