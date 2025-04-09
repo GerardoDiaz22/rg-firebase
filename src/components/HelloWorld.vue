@@ -73,8 +73,11 @@ export default {
     const addBook = async () => {
       try {
         const docRef = await addDoc(collection(db, "books"), book.value);
-        book.value.id = docRef.id;
-        books.value.push(book.value);
+        const newBook = {
+          'id': docRef.id,
+          'data': book.value
+        }
+        books.value.push(newBook);
         book.value = { name: '', author: '', year: '', genres: [] };
       } catch (e) {
         console.error("Error adding document: ", e);
