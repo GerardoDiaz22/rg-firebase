@@ -59,7 +59,7 @@ const db = getFirestore(app);
 
 export default {
   setup() {
-    const book = ref({ name: '', author: '', year: '', genre: '' })
+    const book = ref({ name: '', author: '', year: '', genres: [] })
     const genres = ref(['Ficción', 'No ficción', 'Ciencia ficción', 'Fantasía', 'Misterio', 'Biografía', 'Terror', 'Romance'])
     const books = ref([])
     const headers = ref([
@@ -75,7 +75,7 @@ export default {
         const docRef = await addDoc(collection(db, "books"), book.value);
         book.value.id = docRef.id;
         books.value.push(book.value);
-        book.value = { name: '', author: '', year: '', genre: '' };
+        book.value = { name: '', author: '', year: '', genres: [] };
       } catch (e) {
         console.error("Error adding document: ", e);
       }
